@@ -2,7 +2,7 @@ import pytest
 
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import registry, declarative_base, relationship
-from sqlalchemy.future.engine import Engine
+from sqlalchemy.future.engine import Connection, Engine
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.schema import ForeignKey, Table, Column
 from sqlalchemy.sql.sqltypes import Integer, String
@@ -113,8 +113,8 @@ def test_declaring_mapped_classes():
         __tablename__ = "addresses"
 
         id = Column(Integer, primary_key=True)
-        email = Column(String, nullable=False)
         user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+        email = Column(String, nullable=False)
 
         user = relationship("User", back_populates="addresses")
 
@@ -122,4 +122,37 @@ def test_declaring_mapped_classes():
             return f"Address(id={self.id!r}, email={self.email!r})"
 
     assert User.__table__.c.keys() == ["id", "name", "full_name"]
-    assert Address.__table__.c.keys() == ["id", "email", "user_id"]
+    assert Address.__table__.c.keys() == ["id", "user_id", "email"]
+
+
+def test_mapping_core_tables(metadata: MetaData, users: Table, addresses: Table):
+    Base = declarative_base(metadata=metadata)
+
+    class User(Base):
+        __table__ = users
+
+        addresses = relationship("Address", back_populates="user")
+
+        def __repr__(self):
+            return f"User(id={self.id!r}, name={self.name!r}, full_name={self.full_name!r})"
+
+    class Address(Base):
+        __table__ = addresses
+
+        user = relationship("User", back_populates="addresses")
+
+        def __repr__(self):
+            return f"Address(id={self.id!r}, email={self.email!r})"
+
+    assert User.__table__.c.keys() == ["id", "name", "full_name"]
+    assert Address.__table__.c.keys() == ["id", "user_id", "email"]
+
+
+def test_table_reflection(engine: Engine, metadata: MetaData):
+    connection: Connection
+    with engine.connect() as connection:
+        connection.execute(text("CREATE TABLE some_table (x int, y int)"))
+        connection.commit()
+
+    some_table = Table("some_table", metadata, autoload_with=engine)
+    assert some_table.c.keys() == ["x", "y"]
