@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "new-sqlalchemy"
+name = "realapp"
 version = "0.1.0"
 description = "some testing to understand the new way of sqlalchemy-ing"
 authors = ["Oscar Arbelaez <oscar@arbelaez.dev>"]

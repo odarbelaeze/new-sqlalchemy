@@ -34,6 +34,15 @@ def test_basic_text_execution(engine: Engine):
         assert result.all() == [("hello world",)]
 
 
+def test_connection_text_execution(connection: Connection):
+    result = connection.execute(text("SELECT 'hello world'"))
+    assert result.all() == [("hello world",)]
+
+
+def test_engine_and_connection(engine: Engine, connection: Connection):
+    assert connection.engine is engine
+
+
 def test_commiting_changes(engine: Engine):
     connection: Connection
     with engine.connect() as connection:
